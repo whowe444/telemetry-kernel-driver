@@ -12,7 +12,7 @@ Pre-requistes
 
 `sudo dnf install kernel-devel kernel-headers`
 
-Instructions
+Instructions for installing the kernel module
 =========================
 
 1. Build the module
@@ -40,3 +40,20 @@ Instructions
 6. Unload when done
 
 `sudo rmmod mock_sensor`
+
+Instructions for running the connector program
+===============================================
+
+1. Build
+
+`cd connector && make`
+
+2. Run the program for temperature
+
+`./poll_to_ipc /temperature /sys/kernel/mock_sensor/temperature`
+
+3. Run the program for humidity
+
+`./poll_to_ipc /humidity /sys/kernel/mock_sensor/humidity`
+
+NOTE: Messages are only added to the mq when the driver updates the sysfs file.
