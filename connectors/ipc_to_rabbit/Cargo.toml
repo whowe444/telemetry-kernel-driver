@@ -1,0 +1,7 @@
+[package]
+name = "ipc_to_rabbit"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+posixmq = "1.0.0"
