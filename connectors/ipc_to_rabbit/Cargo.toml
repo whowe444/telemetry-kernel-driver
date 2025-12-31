@@ -5,3 +5,5 @@ edition = "2018"
 
 [dependencies]
 posixmq = "1.0.0"
+lapin = "2.1"
+tokio = { version = "1", features = ["full"] }
