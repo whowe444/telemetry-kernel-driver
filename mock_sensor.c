@@ -1,6 +1,7 @@
 /*
- * Simple Mock Sensor Driver
+ * Simple Mock Sensor Driver with Dynamic Updates
  * Exposes temperature and humidity values via sysfs
+ * Updates values every second with Gaussian noise
  */
 
 #include <linux/module.h>
@@ -8,6 +9,9 @@
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
 #include <linux/init.h>
+#include <linux/timer.h>
+#include <linux/jiffies.h>
+#include <linux/random.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Will Howe");
@@ -15,8 +19,49 @@ MODULE_DESCRIPTION("Simple mock sensor driver");
 MODULE_VERSION("1.0");
 
 /* Mock sensor values */
-static int temperature = 25;
-static int humidity = 60;
+static int temperature = 25; // Air Temperature in Farenheit
+static int humidity = 60; // Relative Humidity in %
+
+/* Base values for sensors */
+static int temp_base = 25; // Air Temperature in Farenheit
+static int humidity_base = 60; // Relative Humidity in %
+
+/* Timer for periodic updates */
+static struct timer_list sensor_timer;
+
+/* Simple Box-Muller transform for Gaussian noise */
+static int get_gaussian_noise(int mean, int stddev)
+{
+    unsigned int rand1, rand2;
+    int noise;
+    
+    get_random_bytes(&rand1, sizeof(rand1));
+    get_random_bytes(&rand2, sizeof(rand2));
+    
+    /* Simplified noise generation (not true Gaussian but close enough) */
+    noise = (int)((rand1 % (2 * stddev + 1)) - stddev);
+    
+    return mean + noise;
+}
+
+/* Timer callback function - updates sensor values */
+static void update_sensors(struct timer_list *t)
+{
+    /* Update temperature with stddev of 2 */
+    temperature = get_gaussian_noise(temp_base, 2);
+    
+    /* Update humidity with stddev of 5 */
+    humidity = get_gaussian_noise(humidity_base, 5);
+    
+    /* Clamp values to reasonable ranges */
+    if (temperature < 0) temperature = 0;
+    if (temperature > 50) temperature = 50;
+    if (humidity < 0) humidity = 0;
+    if (humidity > 100) humidity = 100;
+    
+    /* Reschedule timer for 1 second later */
+    mod_timer(&sensor_timer, jiffies + HZ);
+}
 
 /* Show function for temperature */
 static ssize_t temperature_show(struct kobject *kobj, 
@@ -26,12 +71,12 @@ static ssize_t temperature_show(struct kobject *kobj,
     return sprintf(buf, "%d\n", temperature);
 }
 
-/* Store function for temperature */
+/* Store function for temperature (updates base value) */
 static ssize_t temperature_store(struct kobject *kobj, 
                                  struct kobj_attribute *attr,
                                  const char *buf, size_t count)
 {
-    sscanf(buf, "%d", &temperature);
+    sscanf(buf, "%d", &temp_base);
     return count;
 }
 
@@ -43,12 +88,12 @@ static ssize_t humidity_show(struct kobject *kobj,
     return sprintf(buf, "%d\n", humidity);
 }
 
-/* Store function for humidity */
+/* Store function for humidity (updates base value) */
 static ssize_t humidity_store(struct kobject *kobj, 
                               struct kobj_attribute *attr,
                               const char *buf, size_t count)
 {
-    sscanf(buf, "%d", &humidity);
+    sscanf(buf, "%d", &humidity_base);
     return count;
 }
 
@@ -84,16 +129,25 @@ static int __init sensor_init(void)
 
     /* Create sysfs files */
     ret = sysfs_create_group(sensor_kobj, &attr_group);
-    if (ret)
+    if (ret) {
         kobject_put(sensor_kobj);
+        return ret;
+    }
 
-    printk(KERN_INFO "Mock Sensor Driver: Initialized\n");
-    return ret;
+    /* Initialize and start the timer */
+    timer_setup(&sensor_timer, update_sensors, 0);
+    mod_timer(&sensor_timer, jiffies + HZ);
+
+    printk(KERN_INFO "Mock Sensor Driver: Initialized with dynamic updates\n");
+    return 0;
 }
 
 /* Module cleanup */
 static void __exit sensor_exit(void)
 {
+    /* Stop the timer */
+    del_timer_sync(&sensor_timer);
+    
     kobject_put(sensor_kobj);
     printk(KERN_INFO "Mock Sensor Driver: Exiting\n");
 }
