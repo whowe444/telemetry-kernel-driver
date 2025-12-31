@@ -4,3 +4,39 @@ Author: Will Howe
 This repo contains a personal project consisting of a simple linux device driver simulating navigation
 telemetry values from a sensor on-board a satellite vehicle. The data from the device is read by a user
 space process and publishes out over a message broker.
+
+Pre-requistes
+=========================
+
+1. Install the kernel headers
+
+`sudo dnf install kernel-devel kernel-headers`
+
+Instructions
+=========================
+
+1. Build the module
+
+`make`
+
+2. Load the module
+
+`sudo insmod mock_sensor.ko`
+
+3. Check that it was loaded properly
+
+`sudo dmesg | tail`
+`lsmod | grep mock_sensor`
+
+4. Access the sensor values
+
+`cat /sys/kernel/mock_sensor/temperature`
+`cat /sys/kernel/mock_sensor/humidity`
+
+5. You can also write new values
+
+`echo 30 | sudo tee /sys/kernel/mock_sensor/temperature`
+
+6. Unload when done
+
+`sudo rmmod mock_sensor`
