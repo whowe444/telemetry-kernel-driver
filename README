@@ -57,3 +57,16 @@ Instructions for running the connector program
 `./poll_to_ipc /humidity /sys/kernel/mock_sensor/humidity`
 
 NOTE: Messages are only added to the mq when the driver updates the sysfs file.
+
+Instructions for running the Rust connectors
+============================================
+
+1. Build
+
+`cargo run`
+
+2. Run
+
+`cargo run /temperature`
+
+`cargo run /humidity`
