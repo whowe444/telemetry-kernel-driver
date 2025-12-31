@@ -1,7 +1,8 @@
 /*
- * Simple Mock Sensor Driver with Dynamic Updates
+ * Simple Mock Sensor Driver with sysfs_notify
  * Exposes temperature and humidity values via sysfs
  * Updates values every second with Gaussian noise
+ * Notifies userspace of changes via sysfs_notify()
  */
 
 #include <linux/module.h>
@@ -15,7 +16,7 @@
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Will Howe");
-MODULE_DESCRIPTION("Simple mock sensor driver");
+MODULE_DESCRIPTION("Dynamic mock sensor driver with notifications");
 MODULE_VERSION("1.0");
 
 /* Mock sensor values */
@@ -28,6 +29,13 @@ static int humidity_base = 60; // Relative Humidity in %
 
 /* Timer for periodic updates */
 static struct timer_list sensor_timer;
+
+/* Kobject pointer (needed for sysfs_notify) */
+static struct kobject *sensor_kobj;
+
+/* Attribute pointers (needed for sysfs_notify) */
+static struct kobj_attribute temperature_attribute;
+static struct kobj_attribute humidity_attribute;
 
 /* Simple Box-Muller transform for Gaussian noise */
 static int get_gaussian_noise(int mean, int stddev)
@@ -59,6 +67,10 @@ static void update_sensors(struct timer_list *t)
     if (humidity < 0) humidity = 0;
     if (humidity > 100) humidity = 100;
     
+    /* Notify userspace that values have changed */
+    sysfs_notify(sensor_kobj, NULL, "temperature");
+    sysfs_notify(sensor_kobj, NULL, "humidity");
+    
     /* Reschedule timer for 1 second later */
     mod_timer(&sensor_timer, jiffies + HZ);
 }
@@ -77,6 +89,7 @@ static ssize_t temperature_store(struct kobject *kobj,
                                  const char *buf, size_t count)
 {
     sscanf(buf, "%d", &temp_base);
+    sysfs_notify(sensor_kobj, NULL, "temperature");
     return count;
 }
 
@@ -94,6 +107,7 @@ static ssize_t humidity_store(struct kobject *kobj,
                               const char *buf, size_t count)
 {
     sscanf(buf, "%d", &humidity_base);
+    sysfs_notify(sensor_kobj, NULL, "humidity");
     return count;
 }
 
@@ -114,8 +128,6 @@ static struct attribute *attrs[] = {
 static struct attribute_group attr_group = {
     .attrs = attrs,
 };
-
-static struct kobject *sensor_kobj;
 
 /* Module initialization */
 static int __init sensor_init(void)
@@ -138,7 +150,7 @@ static int __init sensor_init(void)
     timer_setup(&sensor_timer, update_sensors, 0);
     mod_timer(&sensor_timer, jiffies + HZ);
 
-    printk(KERN_INFO "Mock Sensor Driver: Initialized with dynamic updates\n");
+    printk(KERN_INFO "Mock Sensor Driver: Initialized with sysfs_notify\n");
     return 0;
 }
 
