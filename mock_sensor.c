@@ -33,10 +33,6 @@ static struct timer_list sensor_timer;
 /* Kobject pointer (needed for sysfs_notify) */
 static struct kobject *sensor_kobj;
 
-/* Attribute pointers (needed for sysfs_notify) */
-static struct kobj_attribute temperature_attribute;
-static struct kobj_attribute humidity_attribute;
-
 /* Simple Box-Muller transform for Gaussian noise */
 static int get_gaussian_noise(int mean, int stddev)
 {
