@@ -1,7 +1,37 @@
-use lapin::{BasicProperties, options::*, types::FieldTable, Connection, ConnectionProperties};
+use lapin::{BasicProperties, options::*, types::FieldTable, Connection, ConnectionProperties, Channel};
 use posixmq::{OpenOptions, PosixMq};
 use std::env;
 use tokio;
+
+async fn create_rabbit_queue(queue_name: &str) -> Result<Channel, Box<dyn std::error::Error>> {
+    // Establish connection to RabbitMQ
+    let conn = Connection::connect("amqp://guest:guest@localhost:5672", ConnectionProperties::default())
+        .await?;
+    let channel = conn.create_channel().await?;
+
+    // Declare a queue
+    let _rabbit_mq = channel
+        .queue_declare(
+            queue_name,           // Queue name
+            QueueDeclareOptions::default(),
+            FieldTable::default(),
+        )
+        .await?;
+    return Ok(channel);
+}
+
+fn create_posix_queue(queue_name: &str) -> PosixMq {
+    // Open or create a message queue.
+    let mq : PosixMq = OpenOptions::readonly()
+        .capacity(10)
+        .max_msg_len(1024)
+        .create()
+        .open(queue_name)
+        .expect("opening failed!");
+    
+    println!("Message Queue opened or created: {}", queue_name);
+    mq
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -14,30 +44,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let queue_name = &args[1]; // The second argument is the queue name
-    
-    // Open or create a message queue.
-    let mq : PosixMq = OpenOptions::readonly()
-        .capacity(10)
-        .max_msg_len(1024)
-        .create()
-        .open(queue_name)
-        .expect("opening failed!");
-    
-    println!("Message Queue opened or created: {}", queue_name);
 
-    // Establish connection to RabbitMQ
-    let conn = Connection::connect("amqp://guest:guest@localhost:5672/", ConnectionProperties::default())
-        .await?;
-    let channel = conn.create_channel().await?;
+    // Create PosixMq
+    let mq = create_posix_queue(queue_name);
 
-    // Declare a queue
-    let _rabbit_mq = channel
-        .queue_declare(
-            queue_name,           // Queue name
-            QueueDeclareOptions::default(),
-            FieldTable::default(),
-        )
-        .await?;
+    // Create RabbitMQ queue
+    let channel = match create_rabbit_queue(queue_name).await {
+        Ok(channel) => {
+            println!("Channel created.");
+            channel
+        }
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            std::process::exit(1)
+        }
+    };
 
     // Read messages from the queue.
     loop {
