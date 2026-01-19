@@ -83,3 +83,10 @@ podman run -d \
   -e RABBITMQ_DEFAULT_PASS=guest \
   rabbitmq:3-management
 
+
+TODO:
+
+1. Unit test the Rust ipc to rabbit connector
+2. Test ipc to rabbit and make sure it still works
+
+3. ioctl implementation + Rust web endpoint
