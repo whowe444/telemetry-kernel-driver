@@ -1,7 +1,15 @@
-use lapin::{BasicProperties, options::*, types::FieldTable, Connection, ConnectionProperties, Channel};
+use lapin::{options::*, types::FieldTable, Connection, ConnectionProperties, Channel};
 use posixmq::{OpenOptions, PosixMq};
 use std::env;
 use tokio;
+
+mod producer;
+mod consumer;
+mod ipc_to_rabbit;
+
+use producer::ProducerImpl;
+use consumer::ConsumerImpl;
+use ipc_to_rabbit::IpcToRabbit;
 
 async fn create_rabbit_queue(queue_name: &str) -> Result<Channel, Box<dyn std::error::Error>> {
     // Establish connection to RabbitMQ
@@ -60,28 +68,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     };
 
-    // Read messages from the queue.
-    loop {
-        let mut buf = vec![0; mq.attributes().unwrap().max_msg_len];
-        match mq.recv(&mut buf) {
-            Ok((_priority, len)) => {
-                println!("Received message: {:?}", String::from_utf8_lossy(&buf[..len]));
-                channel
-                    .basic_publish(
-                        "",                      // Default exchange (empty means "amq.direct")
-                        queue_name,              // Routing key is the queue name
-                        BasicPublishOptions::default(),
-                        &buf,      // Message body
-                        BasicProperties::default(),
-                    )
-                    .await?
-                    .await?;
+    let consumer = ConsumerImpl::new(channel, queue_name.to_string());
+    let producer = ProducerImpl::new(mq);
+    let processor = IpcToRabbit::new(consumer, producer);
 
-                println!("Message sent to RabbitMQ!");
-            },
-            Err(e) => {
-                eprintln!("Error receiving message: {}", e);
-            }
-        }
-    }
+    // Start the main loop
+    processor.process().await;
+    Ok(())
 }
