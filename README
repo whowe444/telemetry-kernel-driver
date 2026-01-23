@@ -71,6 +71,10 @@ Instructions for running the Rust connectors
 
 `cargo run /humidity`
 
+3. Test
+
+`cargo test`
+
 Running a rabbit-mq broker
 =================================================
 
@@ -82,6 +86,8 @@ podman run -d \
   -e RABBITMQ_DEFAULT_USER=guest \
   -e RABBITMQ_DEFAULT_PASS=guest \
   rabbitmq:3-management
+
+Inspect rabbitmq: http://localhost:15672/#/
 
 
 TODO:

@@ -2,6 +2,10 @@ use lapin::Channel;
 use lapin::options::*;
 use lapin::BasicProperties;
 
+use mockall::automock;
+
+
+#[automock]
 pub trait Consumer {
     async fn accept(&self, buf: Vec<u8>) -> Result<(), Box<dyn std::error::Error>>;
 }

@@ -73,6 +73,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let processor = IpcToRabbit::new(consumer, producer);
 
     // Start the main loop
-    processor.process().await;
+    processor.start().await;
     Ok(())
 }

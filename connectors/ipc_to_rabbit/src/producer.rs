@@ -1,5 +1,7 @@
 use posixmq::PosixMq;
+use mockall::automock;
 
+#[automock]
 pub trait Producer {
     fn get(&self) -> Vec<u8>;
 }
