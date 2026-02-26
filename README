@@ -1,16 +1,18 @@
 Title: Telemetry Device Driver
 Author: Will Howe
 
-This repo contains a personal project consisting of a simple linux device driver simulating navigation
-telemetry values from a sensor on-board a satellite vehicle. The data from the device is read by a user
-space process and publishes out over a message broker.
+This repo contains a personal project consisting of a simple linux device driver simulating navigation telemetry values from a sensor on-board a satellite vehicle. The data from the device is read by a user space process and publishes out over a message broker.
 
-Pre-requistes
+Pre-requisites
 =========================
 
 1. Install the kernel headers
 
 `sudo dnf install kernel-devel kernel-headers`
+
+or if that doesn't work:
+
+`sudo dnf install kernel-devel-$(uname -r)`
 
 Instructions for installing the kernel module
 =========================
@@ -48,11 +50,15 @@ Instructions for running the connector program
 
 `cd connectors/poll_to_ipc && make`
 
-2. Run the program for temperature
+2. Install the executable
+
+`sudo make install` 
+
+3. Run the program for temperature
 
 `./poll_to_ipc /temperature /sys/kernel/mock_sensor/temperature`
 
-3. Run the program for humidity
+4. Run the program for humidity
 
 `./poll_to_ipc /humidity /sys/kernel/mock_sensor/humidity`
 
@@ -79,6 +85,7 @@ Running a rabbit-mq broker
 =================================================
 
 # Run RabbitMQ with podman
+```
 podman run -d \
   --name rabbitmq \
   -p 5672:5672 \
@@ -86,13 +93,18 @@ podman run -d \
   -e RABBITMQ_DEFAULT_USER=guest \
   -e RABBITMQ_DEFAULT_PASS=guest \
   rabbitmq:3-management
+```
 
 Inspect rabbitmq: http://localhost:15672/#/
 
 
+Deploy (putting it all together)
+========================================
+
 TODO:
 
-1. Unit test the Rust ipc to rabbit connector
-2. Test ipc to rabbit and make sure it still works
+1. Test ipc to rabbit and make sure it still works
 
-3. ioctl implementation + Rust web endpoint
+2. systemd files
+
+2. ioctl implementation + Rust web endpoint
