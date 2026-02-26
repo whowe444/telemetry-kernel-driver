@@ -3,6 +3,9 @@
 # Start the rabbitmq broker
 systemctl --user restart rabbitmq-container.service
 
+# Start the telemetry-driver-controller
+sudo systemctl restart telemetry-driver-controller.service
+
 # Start the humidity poll-to-ipc
 systemctl --user restart poll-to-ipc@humidity.service
 

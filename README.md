@@ -3,6 +3,17 @@ Author: Will Howe
 
 This repo contains a personal project consisting of a simple linux device driver simulating navigation telemetry values from a sensor on-board a satellite vehicle. The data from the device is read by a user space process and publishes out over a message broker.
 
+This project is "pedagogical" with the intention of learning as well as showcasing some interesting technologies. Namely:
+
+- linux device driver with /sys/ interface and /dev/ char device node
+- driver controllable with ioctl
+- Rust / C connector programs with message queues
+- HTTP endpoint in Rust
+- RabbitMQ interface in Rust
+- systemd security mechanisms
+
+I did make use of LLMs during the course of this project.
+
 Pre-requisites
 =========================
 
@@ -101,6 +112,20 @@ podman run -d \
 
 Inspect rabbitmq: http://localhost:15672/#/
 
+Running the telemetry-driver-controller
+==================================================
+
+1. Build
+
+```
+cd telemetry-kernel-driver
+cd controller
+cargo build
+```
+
+2. Install
+
+`cargo install --path . --root /usr/local`
 
 Deploy (putting it all together)
 ========================================
@@ -127,8 +152,3 @@ cd telemetry-kernel-driver
 cd telemetry-kernel-driver
 ./scripts/deploy.sh
 ```
-
-
-TODO
-
-1. ioctl implementation + Rust web endpoint

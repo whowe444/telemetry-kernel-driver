@@ -8,6 +8,12 @@ cp "${WORKSPACE}/connectors/ipc_to_rabbit/rabbitmq-container.service" "${HOME}/.
 systemctl --user daemon-reload
 systemctl --user enable rabbitmq-container.service
 
+# Deploy telemetry-driver-controller in systemd
+echo "Copying telemetry-driver-controller.service to /etc/systemd/system/"
+sudo cp "${WORKSPACE}/controller/telemetry-driver-controller.service" "/etc/systemd/system/"
+sudo systemctl --user daemon-reload
+sudo systemctl enable telemetry-driver-controller.service
+
 # Deploy the poll-to-ipc connector in systemd
 echo "Copying poll-to-ipc@.service to ~/.config/systemd/user/"
 cp "${WORKSPACE}/connectors/poll_to_ipc/poll-to-ipc@.service" "${HOME}/.config/systemd/user/"

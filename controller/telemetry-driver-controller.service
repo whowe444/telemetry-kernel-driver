@@ -1,0 +1,13 @@
+[Unit]
+Description=Mock Sensor HTTP Controller
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/controller
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

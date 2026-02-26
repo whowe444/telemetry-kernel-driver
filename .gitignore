@@ -9,3 +9,5 @@
 *.symvers
 
 *.o
+
+**/Cargo.lock
