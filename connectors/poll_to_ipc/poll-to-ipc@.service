@@ -1,0 +1,49 @@
+# poll-to-ipc@.service
+[Unit]
+Description=Poll sensor %i to IPC
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/poll_to_ipc /%i /sys/kernel/mock_sensor/%i
+Restart=on-failure
+
+# --- Privilege hardening ---
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectHome=yes
+ProtectSystem=strict
+
+# --- Kernel hardening ---
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+
+# --- Restrict capabilities ---
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# --- Filesystem access ---
+# Allow read access to the sysfs sensor path and write to IPC
+ReadOnlyPaths=/sys/kernel/mock_sensor
+ReadWritePaths=/run
+
+# --- Syscall filtering ---
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+SystemCallArchitectures=native
+
+# --- Misc restrictions ---
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+
+[Install]
+WantedBy=default.target

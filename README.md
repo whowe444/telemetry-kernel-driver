@@ -81,6 +81,10 @@ Instructions for running the Rust connectors
 
 `cargo test`
 
+4. Install in `/usr/local/bin/`
+
+`sudo cargo install --path . --root /usr/local/`
+
 Running a rabbit-mq broker
 =================================================
 
@@ -103,8 +107,6 @@ Deploy (putting it all together)
 
 TODO:
 
-1. Test ipc to rabbit and make sure it still works
-
-2. systemd files
+1. systemd files
 
 2. ioctl implementation + Rust web endpoint

@@ -1,0 +1,55 @@
+# ipc-to-rabbit@.service
+[Unit]
+Description=Forward %i sensor data from IPC to RabbitMQ
+After=network.target rabbitmq-container.service
+Requires=rabbitmq-container.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/ipc_to_rabbit /%i
+Restart=on-failure
+
+# --- Privilege hardening ---
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectHome=yes
+ProtectSystem=strict
+
+# --- Kernel hardening ---
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+
+# --- Restrict capabilities ---
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+# --- Filesystem access ---
+# Read from IPC, no other filesystem access needed
+ReadOnlyPaths=/run
+TemporaryFileSystem=/:ro
+
+# --- Network restrictions ---
+# Only needs to reach RabbitMQ on localhost
+IPAddressAllow=127.0.0.1
+IPAddressDeny=any
+
+# --- Syscall filtering ---
+SystemCallFilter=@system-service @network-io
+SystemCallErrorNumber=EPERM
+SystemCallArchitectures=native
+
+# --- Misc restrictions ---
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+
+[Install]
+WantedBy=default.target
