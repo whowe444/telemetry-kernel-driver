@@ -152,3 +152,5 @@ cd telemetry-kernel-driver
 cd telemetry-kernel-driver
 ./scripts/deploy.sh
 ```
+
+TODO: More documentation of hard to understand code.
