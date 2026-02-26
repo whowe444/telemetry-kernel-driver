@@ -105,8 +105,30 @@ Inspect rabbitmq: http://localhost:15672/#/
 Deploy (putting it all together)
 ========================================
 
-TODO:
+Rather than running the above programs by hand, we can deploy and status them with some Bash scripts.
 
-1. systemd files
+1. Deploy systemd services
 
-2. ioctl implementation + Rust web endpoint
+```
+cd telemetry-kernel-driver
+./scripts/deploy.sh
+```
+
+2. Start the systemd services
+
+```
+cd telemetry-kernel-driver
+./scripts/start.sh
+```
+
+3. Status the systemd services
+
+```
+cd telemetry-kernel-driver
+./scripts/deploy.sh
+```
+
+
+TODO
+
+1. ioctl implementation + Rust web endpoint

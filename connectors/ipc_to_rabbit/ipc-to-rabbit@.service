@@ -10,22 +10,52 @@ ExecStart=/usr/local/bin/ipc_to_rabbit /%i
 Restart=on-failure
 
 # --- Privilege hardening ---
+
+# Kernel sets PR_SET_NO_NEW_PRIVS. setuid/setgid bits are ignored. Running sudo
+# won't elevate privileges. File capabilities (cap_net_bind_service) are ignored.
 NoNewPrivileges=yes
+
+# Other processes cannot see the service's /tmp and it is automatically cleaned up.
 PrivateTmp=yes
+
+# Service only given access to pseudo-devices (/dev/null, /dev/random), /dev/tty (terminal)
+# and /dev/pts (pseudo terminal).
 PrivateDevices=yes
+
+# Home directories become empty and inaccessible to the service.
 ProtectHome=yes
+
+# Makes /, /usr, /etc read-only.
 ProtectSystem=strict
 
 # --- Kernel hardening ---
+
+# Makes kernel parameters read-only, like /proc/sys which contains (network stack, memory,
+# and kernel behavior).
 ProtectKernelTunables=yes
+
+# Prevents the service from loading or unloading kernel modules.
 ProtectKernelModules=yes
+
+# Prevents the service from reading the kernel log buffer (dmesg output).
 ProtectKernelLogs=yes
+
+# Mounts /sys/fs/cgroup as read-only, the cgroup filesystem for modifying
+# control groups.
 ProtectControlGroups=yes
+
+# Prevents the service from changing the system clock or hardware clock (rtc).
 ProtectClock=yes
+
+# Prevents the service from changing the system hostname.
 ProtectHostname=yes
 
 # --- Restrict capabilities ---
+
+# Drops all capabilities like CAP_NET_BIND_SERVICE (bind to ports below 1024).
 CapabilityBoundingSet=
+
+# Add capabilities that normally would need root or setuid binaries.
 AmbientCapabilities=
 
 # --- Filesystem access ---
@@ -39,16 +69,37 @@ IPAddressAllow=127.0.0.1
 IPAddressDeny=any
 
 # --- Syscall filtering ---
+
+# Using seccomp (secure computing mode) to intercept forbidden system calls.
 SystemCallFilter=@system-service @network-io
+
+# Instead of killing a process in violation, return an error code.
 SystemCallErrorNumber=EPERM
+
+# Blocks attempts to use alternative ABIs which could bypass seccomp.
 SystemCallArchitectures=native
 
 # --- Misc restrictions ---
+
+# Prevents changing kernel execution domain (like 32bit vs 64bit mode).
 LockPersonality=yes
+
+# Prevents real-time scheduling  (SCHED_FIFO, SCHED_RR).
 RestrictRealtime=yes
+
+# Prevents the service from creating new setuid or setgid files which 
+# is a common privilege escalation technique.
 RestrictSUIDSGID=yes
+
+# Prevents service from creating or joining namespaces.
 RestrictNamespaces=yes
+
+# Prevents service from creating memory regions that are both writable and executable
+# simultaneously, which blocks code injection attacks.
 MemoryDenyWriteExecute=yes
+
+# Automatically cleans up IPC objects owned by the service, preventing resource leaks
+# and lingering sensitive data.
 RemoveIPC=yes
 
 [Install]
