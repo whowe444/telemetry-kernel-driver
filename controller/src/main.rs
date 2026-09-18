@@ -1,12 +1,7 @@
-use axum::{
-    extract::Json,
-    http::StatusCode,
-    routing::post,
-    Router,
-};
-use serde::{Deserialize, Serialize};
+use clap::Parser;
+use clap::ValueEnum;
+use std::os::fd::AsRawFd;
 use std::fs::OpenOptions;
-use std::os::unix::io::AsRawFd;
 
 // ── ioctl definitions ────────────────────────────────────────────────────────
 // Mirrors the C macros from your driver header:
@@ -37,8 +32,7 @@ const DEVICE_PATH: &str = "/dev/mock_sensor";
 
 // ── sensor ioctl helpers ─────────────────────────────────────────────────────
 
-/// Open the device and issue an ioctl. Runs in a blocking thread so it won't
-/// stall the async runtime.
+/// Open the device and issue an ioctl.
 fn sensor_ioctl(request: u64) -> std::io::Result<()> {
     let file = OpenOptions::new().read(true).write(true).open(DEVICE_PATH)?;
     let fd = file.as_raw_fd();
@@ -62,124 +56,49 @@ fn sensor_get_unit() -> std::io::Result<libc::c_int> {
     Ok(unit)
 }
 
-// ── request / response types ─────────────────────────────────────────────────
-
-#[derive(Deserialize)]
-struct SetUnitRequest {
-    /// Accepted values: "celsius" | "fahrenheit"
-    unit: String,
+#[derive(ValueEnum, Clone, Debug)]
+enum TemperatureUnit {
+    Celsius,
+    Fahrenheit
 }
 
-#[derive(Serialize)]
-struct ApiResponse {
-    status: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    unit: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<String>,
+#[derive(Parser, Debug)]
+#[command(version, about, long_about=None)]
+struct Args {
+    // Set
+    #[arg(short, long, requires="value")]
+    set: Option<String>,
+
+    // Get
+    #[arg(short, long)]
+    get: Option<String>,
+
+    // Value
+    #[arg(long, value_enum)]
+    value: Option<TemperatureUnit>,
 }
 
-// ── handlers ─────────────────────────────────────────────────────────────────
-
-/// POST /set_unit  { "unit": "celsius" | "fahrenheit" }
-async fn set_unit(Json(payload): Json<SetUnitRequest>) -> (StatusCode, Json<ApiResponse>) {
-    let ioctl_code = match payload.unit.to_lowercase().as_str() {
-        "celsius"    => SENSOR_IOC_SET_CELSIUS,
-        "fahrenheit" => SENSOR_IOC_SET_FAHRENHEIT,
-        other => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ApiResponse {
-                    status: "error".into(),
-                    unit: None,
-                    error: Some(format!("Unknown unit '{}'. Use 'celsius' or 'fahrenheit'.", other)),
-                }),
-            );
-        }
-    };
-
-    // Build the HTTP response first, then issue the ioctl on a blocking thread.
-    let response = Json(ApiResponse {
-        status: "ok".into(),
-        unit: Some(payload.unit.clone()),
-        error: None,
-    });
-
-    let result = tokio::task::spawn_blocking(move || sensor_ioctl(ioctl_code))
-        .await
-        .expect("spawn_blocking panicked");
-
-    if let Err(e) = result {
-        eprintln!("ioctl SENSOR_IOC_SET_{} failed: {}", payload.unit.to_uppercase(), e);
-        return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ApiResponse {
-                status: "error".into(),
-                unit: None,
-                error: Some(e.to_string()),
-            }),
-        );
-    }
-
-    println!("ioctl SENSOR_IOC_SET_{} succeeded", payload.unit.to_uppercase());
-    (StatusCode::OK, response)
-}
-
-/// POST /get_unit  (no body required)
-async fn get_unit() -> (StatusCode, Json<ApiResponse>) {
-    let result = tokio::task::spawn_blocking(sensor_get_unit)
-        .await
-        .expect("spawn_blocking panicked");
-
-    match result {
-        Ok(unit_code) => {
-            let unit_str = match unit_code {
-                0 => "celsius",
-                1 => "fahrenheit",
-                _ => "unknown",
+fn main() {
+    let args = Args::parse();
+    if let Some(sensor) = args.get {
+        if sensor == "temperature" {
+            let units_string = match sensor_get_unit() {
+                Ok(0) => "Celsius",
+                Ok(1) => "Fahrenheit",
+                Err(_) => todo!(),
+                Ok(i32::MIN..=-1_i32) | Ok(2_i32..=i32::MAX) => todo!()
             };
-            println!("ioctl SENSOR_IOC_GET_UNIT returned {}", unit_code);
-            (
-                StatusCode::OK,
-                Json(ApiResponse {
-                    status: "ok".into(),
-                    unit: Some(unit_str.into()),
-                    error: None,
-                }),
-            )
+            print!("Current units of the temperature sensor are: {}\n", units_string);        
         }
-        Err(e) => {
-            eprintln!("ioctl SENSOR_IOC_GET_UNIT failed: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse {
-                    status: "error".into(),
-                    unit: None,
-                    error: Some(e.to_string()),
-                }),
-            )
+    } else if let Some(sensor) = args.set {
+        if sensor == "temperature" {
+            let ioctl_request = match args.value {
+                Some(TemperatureUnit::Celsius) => sensor_ioctl(SENSOR_IOC_SET_CELSIUS),
+                Some(TemperatureUnit::Fahrenheit) => sensor_ioctl(SENSOR_IOC_SET_FAHRENHEIT),
+                None => todo!()
+            };
+            print!("Setting temperature to: {:?}\n", args.value.unwrap());
         }
     }
-}
 
-// ── main ─────────────────────────────────────────────────────────────────────
-
-#[tokio::main]
-async fn main() {
-    let app = Router::new()
-        .route("/set_unit", post(set_unit))
-        .route("/get_unit", post(get_unit));
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await.unwrap();
-    println!("Listening on http://0.0.0.0:8080");
-    println!("Set unit to Celsius:");
-    println!(r#"  curl -X POST http://localhost:8080/set_unit -H "Content-Type: application/json" -d '{{"unit":"celsius"}}'"#);
-
-    println!("\nSet unit to Fahrenheit:");
-    println!(r#"  curl -X POST http://localhost:8080/set_unit -H "Content-Type: application/json" -d '{{"unit":"fahrenheit"}}'"#);
-
-    println!("\nGet current unit:");
-    println!("  curl -X POST http://localhost:8080/get_unit");
-
-    axum::serve(listener, app).await.unwrap();
 }
