@@ -1,7 +1,7 @@
 Title: Telemetry Device Driver
 Author: Will Howe
 
-This repo contains a personal project consisting of a simple linux device driver simulating navigation telemetry values from a sensor on-board a satellite vehicle. The data from the device is read by a user space process and publishes out over a message broker.
+This repo contains a personal project consisting of a simple linux device driver simulating sensor telemetry values from a sensor on-board a satellite vehicle. The data from the device is read by a user space process and publishes out over a message broker.
 
 This project is "pedagogical" with the intention of learning as well as showcasing some interesting technologies. Namely:
 
