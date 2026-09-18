@@ -8,7 +8,6 @@ This project is "pedagogical" with the intention of learning as well as showcasi
 - linux device driver with /sys/ interface and /dev/ char device node
 - driver controllable with ioctl
 - Rust / C connector programs with message queues
-- HTTP endpoint in Rust
 - RabbitMQ interface in Rust
 - systemd security mechanisms
 
